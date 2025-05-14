@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "api-gateway"
+        dapr.io/app-port: "8080"
+    spec:
+      containers:
+      - name: api-gateway
+        image: quickcolbert/api-gateway:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: INDEXING_SERVICE_URL
+          value: "http://indexing-service:8000"
+        - name: QUERY_SERVICE_URL
+          value: "http://query-service:8001"
+        - name: STORAGE_SERVICE_URL
+          value: "http://storage-service:8002"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP

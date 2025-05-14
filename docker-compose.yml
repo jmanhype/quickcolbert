@@ -1,0 +1,100 @@
+version: '3'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - INDEXING_SERVICE_URL=http://indexing-service:8000
+      - QUERY_SERVICE_URL=http://query-service:8001
+      - STORAGE_SERVICE_URL=http://storage-service:8002
+    depends_on:
+      - redis
+      - indexing-service
+      - query-service
+      - storage-service
+
+  api-gateway-dapr:
+    image: daprio/daprd:1.10.0
+    network_mode: "service:api-gateway"
+    depends_on:
+      - api-gateway
+    volumes:
+      - "./deploy/dapr/components:/components"
+    command: ["./daprd", "-app-id", "api-gateway", "-app-port", "8080", "-components-path", "/components"]
+
+  indexing-service:
+    build:
+      context: ./services/indexing-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - STORAGE_SERVICE_URL=http://storage-service:8002
+    depends_on:
+      - redis
+
+  indexing-service-dapr:
+    image: daprio/daprd:1.10.0
+    network_mode: "service:indexing-service"
+    depends_on:
+      - indexing-service
+    volumes:
+      - "./deploy/dapr/components:/components"
+    command: ["./daprd", "-app-id", "indexing-service", "-app-port", "8000", "-components-path", "/components"]
+
+  query-service:
+    build:
+      context: ./services/query-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - STORAGE_SERVICE_URL=http://storage-service:8002
+    depends_on:
+      - redis
+
+  query-service-dapr:
+    image: daprio/daprd:1.10.0
+    network_mode: "service:query-service"
+    depends_on:
+      - query-service
+    volumes:
+      - "./deploy/dapr/components:/components"
+    command: ["./daprd", "-app-id", "query-service", "-app-port", "8001", "-components-path", "/components"]
+
+  storage-service:
+    build:
+      context: ./services/storage-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - CLOUDFLARE_R2_BUCKET=${CLOUDFLARE_R2_BUCKET}
+      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+    depends_on:
+      - redis
+
+  storage-service-dapr:
+    image: daprio/daprd:1.10.0
+    network_mode: "service:storage-service"
+    depends_on:
+      - storage-service
+    volumes:
+      - "./deploy/dapr/components:/components"
+    command: ["./daprd", "-app-id", "storage-service", "-app-port", "8002", "-components-path", "/components"]
+
+volumes:
+  redis_data:

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-service
+  labels:
+    app: storage-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-service
+  template:
+    metadata:
+      labels:
+        app: storage-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "storage-service"
+        dapr.io/app-port: "8002"
+    spec:
+      containers:
+      - name: storage-service
+        image: quickcolbert/storage-service:latest
+        ports:
+        - containerPort: 8002
+        env:
+        - name: CLOUDFLARE_R2_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-r2
+              key: bucket
+        - name: CLOUDFLARE_R2_ACCOUNT_ID
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-r2
+              key: account-id
+        - name: CLOUDFLARE_R2_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-r2
+              key: access-key
+        - name: CLOUDFLARE_R2_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cloudflare-r2
+              key: secret-key
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-service
+spec:
+  selector:
+    app: storage-service
+  ports:
+  - port: 8002
+    targetPort: 8002
+  type: ClusterIP

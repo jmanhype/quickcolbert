@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- api-gateway-deployment.yaml
+- indexing-service-deployment.yaml
+- query-service-deployment.yaml
+- storage-service-deployment.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: quickcolbert
+
+configMapGenerator:
+- name: app-config
+  literals:
+  - LOG_LEVEL=info

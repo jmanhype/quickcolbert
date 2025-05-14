@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexing-service
+  labels:
+    app: indexing-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexing-service
+  template:
+    metadata:
+      labels:
+        app: indexing-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "indexing-service"
+        dapr.io/app-port: "8000"
+    spec:
+      containers:
+      - name: indexing-service
+        image: quickcolbert/indexing-service:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: STORAGE_SERVICE_URL
+          value: "http://storage-service:8002"
+        - name: RUNPOD_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runpod-api-key
+              key: api-key
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexing-service
+spec:
+  selector:
+    app: indexing-service
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP

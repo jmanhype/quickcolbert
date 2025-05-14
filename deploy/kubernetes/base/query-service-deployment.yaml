@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-service
+  labels:
+    app: query-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      labels:
+        app: query-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "query-service"
+        dapr.io/app-port: "8001"
+    spec:
+      containers:
+      - name: query-service
+        image: quickcolbert/query-service:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: STORAGE_SERVICE_URL
+          value: "http://storage-service:8002"
+        - name: RUNPOD_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: runpod-api-key
+              key: api-key
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: query-service
+spec:
+  selector:
+    app: query-service
+  ports:
+  - port: 8001
+    targetPort: 8001
+  type: ClusterIP

@@ -1,0 +1,22 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: cloudflare-r2
+spec:
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+  - name: bucket
+    value: "${CLOUDFLARE_R2_BUCKET}"
+  - name: region
+    value: "auto"
+  - name: endpoint
+    value: "https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+  - name: accessKey
+    secretKeyRef:
+      name: cloudflare-r2
+      key: access-key
+  - name: secretKey
+    secretKeyRef:
+      name: cloudflare-r2
+      key: secret-key
